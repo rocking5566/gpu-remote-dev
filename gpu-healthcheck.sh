@@ -24,12 +24,13 @@ if [ "$#" -gt 0 ]; then
 fi
 
 check_one() {
-    local host="$1" out rc
+    local host="$1" out rc driver
     out=$(timeout -k 10 "$TIMEOUT" ssh -o ConnectTimeout=15 -o BatchMode=yes "$host" \
         bash -s -- "$IMAGE" "$CONTAINER_PATH" 2>&1 <<'REMOTE'
 set -e
 IMAGE="$1"
 CONTAINER_PATH="$2"
+echo "DRIVER:$(dpkg-query -W -f='${Version}' amdgpu-dkms 2>/dev/null || echo unknown)"
 RENDER_GID=$(stat -c '%g' /dev/kfd)
 docker run --rm \
     --device=/dev/kfd --device=/dev/dri \
@@ -44,14 +45,17 @@ REMOTE
     )
     rc=$?
 
+    driver=$(echo "$out" | grep '^DRIVER:' | head -1 | cut -d: -f2-)
+    driver=${driver:-unknown}
+
     if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-        printf '%-45s TIMEOUT (no response within %ss)\n' "$host" "$TIMEOUT"
+        printf '%-45s TIMEOUT  driver=%-30s (no response within %ss)\n' "$host" "$driver" "$TIMEOUT"
     elif [ "$rc" -ne 0 ]; then
-        printf '%-45s FAIL     %s\n' "$host" "$(echo "$out" | tail -1)"
+        printf '%-45s FAIL     driver=%-30s %s\n' "$host" "$driver" "$(echo "$out" | grep -v '^DRIVER:' | tail -1)"
     elif echo "$out" | grep -q "vector_add PASSED"; then
-        printf '%-45s PASS\n' "$host"
+        printf '%-45s PASS     driver=%s\n' "$host" "$driver"
     else
-        printf '%-45s FAIL     %s\n' "$host" "$(echo "$out" | tail -1)"
+        printf '%-45s FAIL     driver=%-30s %s\n' "$host" "$driver" "$(echo "$out" | grep -v '^DRIVER:' | tail -1)"
     fi
 }
 
