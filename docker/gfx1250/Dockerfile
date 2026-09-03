@@ -33,6 +33,8 @@ RUN mkdir -p /opt/$THEROCK_VER                              && \
     rm /tmp/therock.tar.gz                                  && \
     ln -s /opt/$THEROCK_VER /opt/rocm
 
+RUN ln -sf librocprof-trace-decoder.so.0.2 /opt/$THEROCK_VER/lib/librocprof-trace-decoder.so
+
 # /opt/rocm/lib 沒被 ldconfig 收錄，自己 compile 的 binary 會找不到 libamdhip64.so.7。
 # 用 symlink 路徑而非寫死版本號，換 THEROCK_VER 時才不會失效。
 RUN echo "/opt/rocm/lib" > /etc/ld.so.conf.d/rocm.conf && ldconfig
