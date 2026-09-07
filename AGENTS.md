@@ -12,7 +12,7 @@ so never sync to it.
 Sync, then run. Skipping the sync silently builds stale code:
 
     rsync -az --delete $RSYNC_EXCLUDES ./ "$REMOTE_HOST:$REMOTE_PATH/"
-    ssh "$REMOTE_HOST" "docker exec $REMOTE_CONTAINER \
+    ssh "$REMOTE_HOST" "docker exec -e HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES $REMOTE_CONTAINER \
         bash -lc 'cd $CONTAINER_PATH && <cmd>'"
 
 `--delete` makes the remote an exact mirror, so anything generated there and
