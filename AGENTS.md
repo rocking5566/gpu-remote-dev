@@ -4,19 +4,16 @@
 
 Read, edit and run git here; build, test and profile on the remote server.
 
-Read `.remote.env` for the target — never hardcode its values from memory,
-they all move. A fresh clone has no `.remote.env`: copy `.remote.env.example`
-over and ask which host to use. Its placeholder is deliberately unresolvable,
-so never sync to it.
+Read `.remote.env` for the target (never hardcode — hosts move). No
+`.remote.env`? Copy `.remote.env.example` and ask which host; never sync to
+its placeholder.
 
-Sync, then run. Skipping the sync silently builds stale code:
+Sync, then run — this also starts `$REMOTE_CONTAINER` if it's stopped:
 
     rsync -az --delete $RSYNC_EXCLUDES ./ "$REMOTE_HOST:$REMOTE_PATH/"
-    ssh "$REMOTE_HOST" "docker exec -e HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES $REMOTE_CONTAINER \
+    ssh "$REMOTE_HOST" "docker start $REMOTE_CONTAINER && docker exec -e HIP_VISIBLE_DEVICES=$HIP_VISIBLE_DEVICES $REMOTE_CONTAINER \
         bash -lc 'cd $CONTAINER_PATH && <cmd>'"
 
-`--delete` makes the remote an exact mirror, so anything generated there and
-not covered by `RSYNC_EXCLUDES` is destroyed on the next sync — copy results
-back before syncing again.
-
-Never commit from the remote; its `.git` is excluded and therefore stale.
+Wrote a file on the remote? scp it back in that same step — the next sync's
+`--delete` wipes it. Never commit from the remote; its `.git` is excluded and
+stale.
