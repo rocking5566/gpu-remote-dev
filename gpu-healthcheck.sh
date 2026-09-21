@@ -13,10 +13,8 @@ CONTAINER_PATH=${CONTAINER_PATH:-/work/gpu-remote-dev}
 HOSTS=(
     chunylai@heliosr-1b114-b07-3.mnb.dcgpu
     chunylai@heliosr-1b114-b01-2.mnb.dcgpu
-    chunylai@ct-heliosr-2b805-c3-2.aus-b200.dcgpu
-    chunylai@ctheliosr-1b112-a31-1.mnb.dcgpu
-    chunylai@ctheliosr-1b112-a31-2.mnb.dcgpu
     chunylai@heliosr-2b805-b8-2.aus-b200.dcgpu
+    chunylai@heliosr-2b805-b8-3.aus-b200.dcgpu
 )
 
 if [ "$#" -gt 0 ]; then
