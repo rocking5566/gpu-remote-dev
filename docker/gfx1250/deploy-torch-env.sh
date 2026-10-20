@@ -61,24 +61,31 @@ create() {
         "$IMAGE" bash
 }
 
-if [ -n "$(docker ps -aq -f "name=^/${CONTAINER}$")" ] &&
-   [ "$(docker inspect -f '{{.Config.User}}' "$CONTAINER")" != "$USER_UID:$USER_GID" ]; then
-    # --user is fixed at creation, so a container built with a different user
-    # has to be replaced for the setting to take effect. Anything written
-    # outside /work and /home is lost; both are host mounts, so that is scratch.
-    echo "Container $CONTAINER does not run as $USER_UID:$USER_GID; recreating ..."
-    docker rm -f "$CONTAINER"
-    create
-elif [ -n "$(docker ps -aq -f "name=^/${CONTAINER}$")" ]; then
-    STATUS=$(docker inspect -f '{{.State.Status}}' "$CONTAINER")
-    case "$STATUS" in
-        running) echo "Container $CONTAINER is already running." ;;
-        exited|created) echo "Starting $CONTAINER ..."; docker start "$CONTAINER" ;;
-        paused) echo "Unpausing $CONTAINER ..."; docker unpause "$CONTAINER" ;;
-        *) echo "Container $CONTAINER is '$STATUS'; recreating ..."
-           docker rm -f "$CONTAINER"
-           create ;;
-    esac
+if [ -n "$(docker ps -aq -f "name=^/${CONTAINER}$")" ]; then
+    # Both the image and --user are fixed at creation, so a container that
+    # does not match has to be replaced or the deploy silently keeps running
+    # the old one. Comparing resolved image IDs also catches a tag that was
+    # re-pulled to a new digest. Anything written outside /work and /home is
+    # lost on recreate; both are host mounts, so that is scratch.
+    WANT_IMAGE=$(docker image inspect -f '{{.Id}}' "$IMAGE")
+    HAVE_IMAGE=$(docker inspect -f '{{.Image}}' "$CONTAINER")
+    HAVE_USER=$(docker inspect -f '{{.Config.User}}' "$CONTAINER")
+    if [ "$HAVE_IMAGE" != "$WANT_IMAGE" ] || [ "$HAVE_USER" != "$USER_UID:$USER_GID" ]; then
+        echo "Container $CONTAINER was built from $(docker inspect -f '{{.Config.Image}}' "$CONTAINER") as user '${HAVE_USER:-root}';"
+        echo "want $IMAGE as $USER_UID:$USER_GID -- recreating ..."
+        docker rm -f "$CONTAINER"
+        create
+    else
+        STATUS=$(docker inspect -f '{{.State.Status}}' "$CONTAINER")
+        case "$STATUS" in
+            running) echo "Container $CONTAINER is already running." ;;
+            exited|created) echo "Starting $CONTAINER ..."; docker start "$CONTAINER" ;;
+            paused) echo "Unpausing $CONTAINER ..."; docker unpause "$CONTAINER" ;;
+            *) echo "Container $CONTAINER is '$STATUS'; recreating ..."
+               docker rm -f "$CONTAINER"
+               create ;;
+        esac
+    fi
 else
     echo "Creating container $CONTAINER ..."
     create
@@ -88,7 +95,10 @@ REMOTE
 log "Smoke-testing PyTorch (version / gpu_available / device_count) ..."
 if ssh "$REMOTE_HOST" bash -s -- "$CONTAINER" <<'REMOTE'
 set -e
-docker exec "$1" bash -lc 'python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.device_count())" 2>/dev/null || python3 -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.device_count())"'
+# Bounded: torch.cuda.is_available() can hang indefinitely on a host whose
+# driver and torch build disagree, and the deploy itself is already done.
+timeout --kill-after=10s 120s \
+    docker exec "$1" bash -lc 'python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.device_count())" 2>/dev/null || python3 -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.device_count())"'
 REMOTE
 then
     log "PyTorch OK."
