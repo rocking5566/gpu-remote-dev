@@ -11,9 +11,10 @@ CONTAINER_PATH=${CONTAINER_PATH:-/work/gpu-remote-dev}
 # Fleet to check. Edit this list directly; pass hosts as args to override for
 # a one-off run instead.
 HOSTS=(
+    chunylai@heliosr-1b114-d05-4.mnb.dcgpu
+    chunylai@ctheliosr-rck-g02-e15-03.rck.dcgpu
     chunylai@heliosr-1b114-b07-3.mnb.dcgpu
     chunylai@heliosr-1b114-b01-2.mnb.dcgpu
-    chunylai@heliosr-2b805-b8-2.aus-b200.dcgpu
     chunylai@heliosr-2b805-b8-3.aus-b200.dcgpu
 )
 
