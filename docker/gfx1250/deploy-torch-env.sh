@@ -37,7 +37,7 @@ ssh "$REMOTE_HOST" bash -s -- "$IMAGE" "$CONTAINER" <<'REMOTE'
 set -e
 IMAGE="$1"
 CONTAINER="$2"
-RENDER_GID=$(stat -c '%g' /dev/kfd)
+RENDER_GID=$(stat -c '%g' /dev/dri/renderD128)
 USERNAME=$(id -un)
 USER_UID=$(id -u)
 USER_GID=$(id -g)

@@ -30,7 +30,7 @@ case "${MODE}" in
         CONTAINER_NAME=mi450_rocking_env
         # 明確掛裝置即可，不用 --privileged。RENDER_GID 放在這裡求值，
         # 沒有 GPU 的機器跑 sim 模式才不會被 set -e 打死。
-        RENDER_GID=$(stat -c '%g' /dev/kfd)
+        RENDER_GID=$(stat -c '%g' /dev/dri/renderD128)
         BUILD_EXTRA=(--build-arg "WITH_ROCDTIF=0" --build-arg "RENDER_GID=${RENDER_GID}")
         RUN_EXTRA=(--device=/dev/kfd --device=/dev/dri
                    --ipc=host
